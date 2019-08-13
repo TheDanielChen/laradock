@@ -37,6 +37,14 @@ ENV PUID ${PUID}
 ARG PGID=1000
 ENV PGID ${PGID}
 
+ARG CHANGE_SOURCE=true
+ENV CHANGE_SOURCE ${CHANGE_SOURCE}
+RUN if [ ${CHANGE_SOURCE} = true ]; then \
+    sed -i 's/archive.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list \
+;fi
+
+RUN cat /etc/apt/sources.list
+
 # always run apt update when start and after add new source list, then clean up at end.
 RUN set -xe; \
     apt-get update -yqq && \
@@ -57,7 +65,7 @@ RUN set -xe; \
       # base image (https://github.com/Laradock/workspace).
       #
       # next lines are here becase there is no auto build on dockerhub see https://github.com/laradock/laradock/pull/1903#issuecomment-463142846
-      libzip-dev zip unzip \
+     libzip-dev zip unzip \
       # Install the zip extension
       php${LARADOCK_PHP_VERSION}-zip \
       # nasm
@@ -129,6 +137,11 @@ RUN echo "" >> ~/.bashrc && \
     echo 'export PATH="$HOME/.composer/vendor/bin:$PATH"' >> ~/.bashrc
 
 USER laradock
+
+RUN if [ ${CHANGE_SOURCE} = true ]; then \
+    composer config -g repo.packagist composer https://mirrors.aliyun.com/composer/ && \
+    composer config -g process-timeout 2000 \
+;fi
 
 # Check if global install need to be ran
 ARG COMPOSER_GLOBAL_INSTALL=false
@@ -444,6 +457,7 @@ RUN if [ ${INSTALL_CASSANDRA} = true ]; then \
 ARG INSTALL_PHPREDIS=false
 
 RUN if [ ${INSTALL_PHPREDIS} = true ]; then \
+    apt-get update -yqq && \
     apt-get install -yqq php-redis \
 ;fi
 
